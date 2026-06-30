@@ -1,0 +1,29 @@
+{
+  "name": "Example Domain check",
+  "startUrl": "https://example.com",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "steps": [
+    {
+      "action": "goto",
+      "url": "https://example.com"
+    },
+    {
+      "action": "assertText",
+      "selector": "body",
+      "contains": "Example Domain"
+    },
+    {
+      "action": "screenshot",
+      "name": "example-home.png",
+      "fullPage": true
+    },
+    {
+      "action": "extractText",
+      "selector": "body",
+      "name": "example-home-text.txt"
+    }
+  ]
+}
