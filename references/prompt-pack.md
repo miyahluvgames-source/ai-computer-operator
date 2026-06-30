@@ -51,6 +51,18 @@ Use AI Computer Operator to fill the form fields I specify, stop before final su
 Use AI Computer Operator to review these files, propose a cleanup plan, and wait before moving or deleting anything.
 ```
 
+## Desktop App Workflow
+
+```text
+Use AI Computer Operator to work with this native desktop app. First check whether a desktop provider is available, then inspect the visible window state, perform only the approved steps, and return a screenshot or changed file path as evidence.
+```
+
+## Dynamic Visual Workflow
+
+```text
+Use AI Computer Operator for this moving or visual UI target. First decide whether it is a browser-page dynamic check or a host dynamic-control task, then use an observe-act-observe loop and return before/after evidence.
+```
+
 ## Evidence Report
 
 ```text

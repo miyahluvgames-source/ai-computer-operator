@@ -131,6 +131,8 @@ Use a JSON plan for deterministic browser tasks:
 
 For more recipes, read `references/task-recipes.md`.
 
+When the user asks how desktop control or dynamic visual control works, read `references/desktop-dynamic-control.md`.
+
 ## Output Style
 
 Be direct:

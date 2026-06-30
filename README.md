@@ -22,6 +22,24 @@ The browser lane recommends [browser-harness](https://github.com/browser-use/bro
 
 The desktop and dynamic lanes are what make the skill useful beyond ordinary webpage checks. They let an agent reason about native UI, visual state changes, motion, drag-and-drop outcomes, and tasks that require more than static DOM access. Because native desktop control depends on each user's operating system, permissions, and agent platform, this repo exposes provider health checks instead of bundling one fixed provider for every machine.
 
+## Desktop And Dynamic Control
+
+The desktop lane handles native surfaces: file pickers, save dialogs, desktop apps, local file workflows, browser extension prompts, and multi-window tasks. It works through a trusted host desktop provider that can observe visible state, send mouse/keyboard input, and return evidence such as screenshots, window state, or changed file paths.
+
+The dynamic visual lane handles moving or pixel-based targets: drag-and-drop, canvas, WebGL, animated charts, maps, streamed apps, game-like UI, and timing-sensitive visual states. Browser pages can use the included `observeStable` action; non-browser targets need a host dynamic provider that can run a short observe-act-observe feedback loop.
+
+The repository includes the browser runtime, Chrome DevTools Protocol support, browser-harness integration, `observeStable`, Docker, tests, and doctor checks. Desktop and host-level dynamic work is plugged in through the user's host agent, such as a desktop/computer-use connector or dynamic-control connector with screen, input, and permission access.
+
+Required host providers are checked through:
+
+```bash
+export ACO_DESKTOP_PROVIDER_CHECK="your-desktop-provider --health"
+export ACO_DYNAMIC_PROVIDER_CHECK="your-dynamic-provider --health"
+npm run doctor
+```
+
+See `references/desktop-dynamic-control.md` for the full provider contract, dependency model, routing examples, complex scenarios, and safety boundaries.
+
 ## What It Helps With
 
 | Use case | What the skill does |
@@ -191,7 +209,7 @@ docker build -t ai-computer-operator .
 docker run --rm -v "$PWD/artifacts:/app/artifacts" ai-computer-operator --engine browser-harness --plan examples/example-plan.json --out artifacts
 ```
 
-See `references/provider-setup.md` for desktop and dynamic provider integration.
+See `references/provider-setup.md` for provider setup and `references/desktop-dynamic-control.md` for desktop and dynamic control details.
 
 ## Runtime Engines
 

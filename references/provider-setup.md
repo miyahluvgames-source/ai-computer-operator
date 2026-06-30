@@ -8,6 +8,8 @@ AI Computer Operator uses three control lanes:
 
 The repo includes the portable browser lane and browser-page dynamic checks. Native desktop and host-level dynamic control depend on the user's operating system, permissions, and agent platform, so this public skill validates provider availability instead of bundling one fixed provider for every machine.
 
+For detailed mechanics, dependency expectations, complex scenarios, and routing examples, read `desktop-dynamic-control.md`.
+
 ## Provider Layers
 
 | Layer | Use when | Setup path |
