@@ -1,11 +1,11 @@
 ---
 name: ai-computer-operator
-description: Use when a user wants an AI agent to operate a browser, inspect a webpage, interact with visible UI, manage simple desktop or file tasks, run a controlled browser automation plan, or verify computer work with screenshots, final URLs, extracted text, and state evidence.
+description: Use when a user wants an AI agent to operate approved browser, desktop, or dynamic visual UI tasks and verify the result with screenshots, final URLs, extracted text, file paths, or state evidence.
 ---
 
 # AI Computer Operator
 
-Use this skill for public, general-purpose computer operation tasks where the agent is expected to help with browser or desktop work and verify the result.
+Use this skill for public, general-purpose computer operation tasks where the agent is expected to help with browser, desktop, or dynamic visual UI work and verify the result.
 
 ## Core Rule
 
@@ -22,17 +22,25 @@ Operate only inside the user's approved task boundary. Prefer visible, reversibl
    - Identify risky steps before performing them.
    - Keep the first run small if the page or app is unfamiliar.
 
-3. **Act visibly**
-   - For browser tasks, prefer Chrome DevTools / CDP or host browser DOM tools first.
+3. **Choose the narrowest control lane**
+   - Browser lane: for web pages, forms, DOM checks, screenshots, and local web app QA.
+   - Desktop lane: for native apps, file pickers, OS dialogs, local file workflows, and non-browser windows.
+   - Dynamic visual lane: for moving targets, drag validation, canvas, animation, timing-sensitive UI, or visual state that cannot be verified from static DOM alone.
+
+4. **Act visibly**
+   - For browser tasks, prefer browser-harness against Chrome DevTools / CDP when available.
+   - Use host browser DOM tools directly when they are simpler or already active.
    - Prefer semantic selectors, visible labels, and DOM/state reads over raw coordinates.
-   - Use Playwright only as a runtime adapter or fallback when direct DevTools tools are unavailable.
+   - For browser-page animation, canvas, drag-after-state, or dynamic UI, use the Docker/local `observeStable` action before escalating to host-level dynamic control.
+   - Use a trusted desktop provider for native UI and a trusted dynamic provider for non-browser moving visual targets when the host supports those providers.
+   - Use Playwright only to launch Chromium/CDP or as a fallback when browser-harness and direct DevTools tools are unavailable.
    - Do not continue after unexpected dialogs, permission prompts, login walls, payment pages, or destructive confirmations without user approval.
 
-4. **Verify**
+5. **Verify**
    - Confirm the final state through visible text, final URL, screenshot, exported file, logs, or structured report.
    - If verification is partial, say exactly what was verified and what remains uncertain.
 
-5. **Return concise evidence**
+6. **Return concise evidence**
    - Summarize actions taken.
    - Include artifact paths or screenshots when available.
    - Report blocked steps without hiding the reason.
@@ -70,15 +78,30 @@ For desktop or file tasks, collect at least one of:
 
 ## Docker Runtime
 
-This repository includes a complete Docker runtime for repeatable browser checks. Use it when the user's local machine is missing dependencies, when a reproducible execution environment is needed, or when the task can be expressed as a JSON plan.
+This repository includes a Docker runtime for repeatable browser checks and browser-page dynamic observation. Use it when the user's local machine is missing browser dependencies, when a reproducible execution environment is needed, or when the task can be expressed as a JSON plan.
 
-The browser automation priority remains Chrome DevTools / CDP-first. The Docker image packages Chromium with a CDP endpoint and uses the included Node.js adapter only to make the runtime portable.
+The browser lane uses browser-harness / Chrome DevTools / CDP when available. The Docker image packages Chromium, browser-harness, CDP exposure, browser dynamic observation, and a Node.js plan runner to make that lane portable.
+
+Before running local automation, check the environment:
+
+```bash
+npm run doctor
+```
+
+If the doctor reports missing pieces, present the user with options instead of silently installing:
+
+- `npm run setup:local` installs Node dependencies, Chromium, and browser-harness.
+- `npm run setup:browser-harness` installs or refreshes only browser-harness.
+- `npm run setup:browsers` installs only Playwright Chromium.
+- Docker remains the clean reference path when local dependency repair is blocked.
+- Browser-page dynamic control is part of the Docker/local runtime through `observeStable`.
+- Native desktop and host-level dynamic-control providers are host-specific layers. Read `references/provider-setup.md` when the user asks how to install, configure, or validate those provider paths.
 
 Common commands:
 
 ```bash
 docker build -t ai-computer-operator .
-docker run --rm -p 9222:9222 -v "$PWD/artifacts:/app/artifacts" ai-computer-operator --plan examples/example-plan.json --cdp-port 9222 --out artifacts
+docker run --rm -p 9222:9222 -v "$PWD/artifacts:/app/artifacts" ai-computer-operator --engine browser-harness --plan examples/example-plan.json --cdp-port 9222 --out artifacts
 ```
 
 Local Node.js:

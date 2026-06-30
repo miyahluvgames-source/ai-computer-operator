@@ -2,32 +2,35 @@
 
 ![AI Computer Operator cover](assets/ai-computer-operator-cover.png)
 
-**AI Computer Operator** is a public, general-purpose skill for turning plain-language computer tasks into safe, visible, and verifiable browser or desktop work.
+**AI Computer Operator** is a public, general-purpose skill for turning approved computer tasks into safe, visible, and verifiable automation across browser, desktop, and dynamic visual UI surfaces.
 
-It is designed for agents that can operate browsers, inspect pages, manage local files, or run a controlled automation runtime. The core idea is simple:
+The core rule is simple:
 
-> Plan first. Act only within user-approved scope. Verify with visible evidence.
+> Plan first. Act only inside the approved scope. Verify with visible evidence.
 
-## Automation Priority
+## Three-Lane Control Model
 
-The skill is **Chrome DevTools / CDP-first** for browser automation.
+AI Computer Operator uses a three-lane model. It routes each task to the narrowest control lane that can complete the work and prove the result.
 
-1. Use the host agent's Chrome DevTools or browser DOM tools when available.
-2. Use semantic browser controls and visible state checks next.
-3. Use the Docker runtime when the user lacks local dependencies or wants an isolated reproducible environment.
-4. Use Playwright only as the bundled adapter inside the Docker/runtime path, or as a fallback when direct DevTools tools are unavailable.
+| Lane | Best for | How it runs |
+| --- | --- | --- |
+| Browser lane | Web pages, forms, screenshots, DOM checks, local web app QA | `browser-harness` with Chrome DevTools Protocol, host browser tools when already active, or the packaged Docker browser runtime |
+| Desktop lane | Native apps, file pickers, OS dialogs, local file workflows, non-browser windows | A trusted host desktop provider, validated through `ACO_DESKTOP_PROVIDER_CHECK` |
+| Dynamic visual lane | Moving targets, drag validation, canvas, animation, timing-sensitive UI, non-static visual state | `observeStable` for browser pages, plus a trusted host dynamic provider for targets outside the browser container |
 
-This keeps the public skill aligned with visible browser verification while still giving users a one-command Docker path when their local setup is missing dependencies.
+The browser lane recommends [browser-harness](https://github.com/browser-use/browser-harness) for browser automation. Thanks to the browser-harness project for the open-source foundation. In this runtime, browser-harness connects to a Chrome DevTools Protocol endpoint, performs scoped page actions, and returns screenshots, text snapshots, final URLs, and state evidence.
+
+The desktop and dynamic lanes are what make the skill useful beyond ordinary webpage checks. They let an agent reason about native UI, visual state changes, motion, drag-and-drop outcomes, and tasks that require more than static DOM access. Because native desktop control depends on each user's operating system, permissions, and agent platform, this repo exposes provider health checks instead of bundling one fixed provider for every machine.
 
 ## What It Helps With
 
 | Use case | What the skill does |
 | --- | --- |
-| Web page checks | Open pages, inspect visible content, compare expected text, capture screenshots. |
-| Browser workflows | Fill simple forms, click approved UI controls, wait for page states, export evidence. |
-| File and document tasks | Open or organize user-provided files when the host agent has file access. |
-| Visual verification | Confirm results through screenshots, extracted text, final URLs, and state reports. |
-| QA routines | Run repeatable checks for landing pages, docs, dashboards, or local web apps. |
+| Browser workflows | Open pages, inspect visible content, fill approved fields, click approved controls, capture evidence. |
+| Desktop workflows | Coordinate host-provider work for native windows, file pickers, local apps, and file operations. |
+| Dynamic UI checks | Watch browser-page motion with `observeStable` or route moving native targets to a host dynamic provider. |
+| QA routines | Run repeatable checks for landing pages, docs, dashboards, and local web apps. |
+| Evidence bundles | Return screenshots, extracted text, final URLs, file paths, reports, and unresolved risks. |
 
 ## Safety Model
 
@@ -45,19 +48,48 @@ This skill is intentionally conservative.
 ```text
 .
 ├── SKILL.md                    # Public skill instructions for AI agents
-├── agents/openai.yaml          # Skill Hub display metadata
+├── agents/openai.yaml          # Agent display metadata
 ├── references/                 # Safety model, recipes, prompt pack
-├── src/                        # Docker-friendly Chromium/CDP runtime
-├── tests/                      # Lightweight safety and schema tests
+├── src/                        # Portable browser runtime and plan runner
+├── tests/                      # Safety and schema tests
 ├── examples/                   # Example browser automation plans
-├── assets/                     # Skill card and README visuals
-├── Dockerfile                  # Container runtime
+├── assets/                     # README visuals
+├── Dockerfile                  # Containerized browser runtime
 └── docker-compose.yml          # Local run helper
 ```
 
-## Quick Start: Use As A Skill
+## Quick Start: Prompt Install
 
-Copy or install the `SKILL.md` folder into your agent's skill directory, then ask:
+Paste this into an AI agent that can access GitHub and write local files:
+
+```text
+Install AI Computer Operator from this public repository:
+https://github.com/miyahluvgames-source/ai-computer-operator
+
+If you can persist skills in this environment:
+1. Clone or download the repository.
+2. Install it as a skill named ai-computer-operator in the appropriate skill directory for this agent.
+3. Include SKILL.md and the references folder. Do not copy .git, node_modules, artifacts, generated images, caches, or temporary outputs.
+4. From the repository root, run npm run doctor.
+5. If dependencies are missing, show me the available repair options first: npm run setup:local, npm run setup:browser-harness, npm run setup:browsers, or Docker.
+
+If you cannot persist skills:
+1. Load SKILL.md and the relevant references for this chat only.
+2. Tell me clearly that this is a session-only setup.
+
+Do not perform destructive, account-changing, financial, or secret-handling actions during installation.
+
+Return:
+- install mode: persistent or session-only
+- installed path, if available
+- doctor status
+- missing providers or dependencies
+- one safe test command or test task I can run next
+```
+
+A prompt can only install the skill when the target agent has repository access and permission to write to its skill directory. If the agent cannot persist custom skills, the same prompt still lets it load the instructions for the current session.
+
+After installation, ask:
 
 ```text
 Use AI Computer Operator to open this page, confirm the main headline, take a screenshot, and tell me what changed.
@@ -66,22 +98,25 @@ Use AI Computer Operator to open this page, confirm the main headline, take a sc
 The agent should:
 
 1. Restate the task boundary.
-2. Identify risks before acting.
-3. Execute only the approved steps.
-4. Return evidence: screenshot path, final URL, visible text, or a short report.
+2. Pick the right lane: browser, desktop, or dynamic visual control.
+3. Identify risky steps before acting.
+4. Execute only the approved steps.
+5. Return evidence: screenshot path, final URL, visible text, file path, or a short report.
 
 ## Quick Start: Docker Runtime
 
-The included Docker image is a complete reproducible runtime for this skill. It packages:
+Docker provides the portable runtime for the browser lane and browser-page dynamic checks. It packages:
 
 - the public `SKILL.md` and references
 - Node.js runtime
 - Chromium browser
+- browser-harness
 - Chrome DevTools Protocol exposure
-- a deterministic browser-plan runner
+- browser-page dynamic observation with `observeStable`
+- a deterministic JSON plan runner
 - examples and tests
 
-Use Docker when a user's machine is missing browser automation dependencies or when you want an isolated execution environment.
+Use Docker when a user's machine is missing browser automation dependencies or when you want an isolated reference runtime. Native desktop windows and host-level dynamic control still require host providers because a browser container normally cannot control the user's real desktop.
 
 Build:
 
@@ -96,6 +131,7 @@ docker run --rm \
   -p 9222:9222 \
   -v "$PWD/artifacts:/app/artifacts" \
   ai-computer-operator \
+  --engine browser-harness \
   --plan examples/example-plan.json \
   --cdp-port 9222 \
   --out artifacts
@@ -104,7 +140,7 @@ docker run --rm \
 With Docker Compose:
 
 ```bash
-docker compose run --rm --service-ports operator --plan examples/example-plan.json --cdp-port 9222 --out artifacts
+docker compose run --rm --service-ports operator --engine browser-harness --plan examples/example-plan.json --cdp-port 9222 --out artifacts
 ```
 
 The runtime writes:
@@ -113,6 +149,59 @@ The runtime writes:
 - screenshots
 - extracted text files
 - optional Playwright trace files
+
+## Setup Doctor
+
+If a user's local machine is missing dependencies, run:
+
+```bash
+npm run doctor
+```
+
+The doctor checks Node.js, npm, package dependencies, Chromium, browser-harness, the browser dynamic runtime, Docker, and optional host providers. It does not install anything by itself; it prints repair options the user can choose.
+
+Common repair paths:
+
+```bash
+npm run setup:local             # install Node deps, Chromium, and browser-harness
+npm run setup:browser-harness   # only install or refresh browser-harness
+npm run setup:browsers          # only install Playwright Chromium
+```
+
+Host providers can be checked without hardcoding a provider:
+
+```bash
+export ACO_DESKTOP_PROVIDER_CHECK="your-desktop-provider --health"
+export ACO_DYNAMIC_PROVIDER_CHECK="your-dynamic-provider --health"
+npm run doctor
+```
+
+Use PowerShell syntax on Windows:
+
+```powershell
+$env:ACO_DESKTOP_PROVIDER_CHECK="your-desktop-provider --health"
+$env:ACO_DYNAMIC_PROVIDER_CHECK="your-dynamic-provider --health"
+npm run doctor
+```
+
+If local browser setup is blocked, use Docker as the reference environment:
+
+```bash
+docker build -t ai-computer-operator .
+docker run --rm -v "$PWD/artifacts:/app/artifacts" ai-computer-operator --engine browser-harness --plan examples/example-plan.json --out artifacts
+```
+
+See `references/provider-setup.md` for desktop and dynamic provider integration.
+
+## Runtime Engines
+
+The runtime supports three browser-engine modes:
+
+- `auto`: use browser-harness when installed, otherwise use the Playwright fallback.
+- `browser-harness`: run through browser-harness and CDP. The runtime can launch its own Chromium CDP endpoint or connect to one with `--cdp-endpoint`.
+- `playwright`: use the deterministic Playwright runner directly.
+
+`auto` never retries with another engine after an execution has already started. This avoids duplicated clicks, form fills, or other side effects.
 
 ## Example Plan
 
@@ -129,9 +218,15 @@ The runtime writes:
 }
 ```
 
+For dynamic browser pages, use `observeStable` or run:
+
+```bash
+npm run run:example:dynamic
+```
+
 ## Runtime Actions
 
-Supported actions:
+Supported browser-plan actions:
 
 - `goto`
 - `click`
@@ -147,12 +242,13 @@ Supported actions:
 - `uncheck`
 - `hover`
 - `setViewport`
+- `observeStable`
 
 Risky selectors or labels such as delete, withdraw, transfer, buy, sell, purchase, payment, and submit are blocked unless the runtime is explicitly started with a risky-action override.
 
 ## Why Playwright Appears In The Runtime
 
-The public workflow is DevTools-first. The package uses Playwright only as a practical Node.js adapter to launch or connect to Chromium/CDP in environments where the host agent does not already provide a DevTools lane. It is not the preferred public automation priority.
+The preferred browser path is browser-harness with Chrome DevTools Protocol. Playwright remains in the package to provide Chromium in Docker, expose a CDP endpoint, and run a deterministic fallback when browser-harness is unavailable.
 
 ## Local Development
 
@@ -160,10 +256,10 @@ The public workflow is DevTools-first. The package uses Playwright only as a pra
 npm install
 npm run install:browsers
 npm run verify
-node src/cli.js --plan examples/example-plan.json --out artifacts
+npm run run:example:browser-harness
 ```
 
-If browser dependencies are missing or hard to install locally, use the Docker path instead. The Docker image packages Chromium and the runtime dependencies.
+If browser dependencies are missing or hard to install locally, use the Docker path instead.
 
 ## Version Freshness
 
@@ -179,15 +275,9 @@ It verifies that:
 - `package-lock.json` matches the same Playwright version
 - the Docker base image uses the same Playwright version
 - the Docker npm version and `packageManager` match npm registry latest
+- the Docker and package metadata pin the latest PyPI `browser-harness` release
 
 CI runs the same gate before linting and tests, so dependency drift is caught early.
-
-## Skill Hub Card Copy
-
-**AI Computer Operator**  
-Turn approved browser and desktop tasks into safe, visible, step-by-step actions with screenshots and state checks.
-
-Chips: `No API key` · `User-approved actions` · `Evidence-first`
 
 ## License
 

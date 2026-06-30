@@ -1,3 +1,3 @@
 display_name: AI Computer Operator
-short_description: Safely operate approved browser and desktop tasks with visible verification.
+short_description: Safely operate approved browser, desktop, and dynamic UI tasks with visible verification.
 default_prompt: Use AI Computer Operator to complete the approved computer task, verify the visible result, and return screenshots or state evidence.

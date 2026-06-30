@@ -1,19 +1,30 @@
 {
   "name": "ai-computer-operator",
   "version": "0.1.0",
-  "description": "A public AI Computer Operator skill with a safe Chrome DevTools/CDP-first Docker runtime.",
+  "description": "A public AI Computer Operator skill for safe browser, desktop, and dynamic visual-control workflows.",
   "type": "module",
   "packageManager": "npm@11.18.0",
+  "config": {
+    "browserHarnessVersion": "0.1.3"
+  },
   "bin": {
     "aco": "src/cli.js"
   },
   "scripts": {
+    "doctor": "node scripts/doctor.js",
+    "setup:local": "node scripts/setup-runtime.js --local",
+    "setup:all": "node scripts/setup-runtime.js --local",
+    "setup:browser-harness": "node scripts/setup-runtime.js --browser-harness",
+    "setup:node": "node scripts/setup-runtime.js --node",
+    "setup:browsers": "node scripts/setup-runtime.js --browsers",
     "check:latest": "node scripts/check-versions.js",
     "install:browsers": "npx playwright install chromium",
-    "lint": "node --check src/cli.js && node --check src/operator.js && node --check src/safety.js && node --check src/report.js",
+    "lint": "node --check src/cli.js && node --check src/operator.js && node --check src/browser-harness-runner.js && node --check src/chrome-cdp.js && node --check src/safety.js && node --check src/report.js && node --check scripts/doctor.js && node --check scripts/setup-runtime.js",
     "test": "node --test tests/*.test.js",
     "verify": "npm run check:latest && npm run lint && npm test && npm audit --audit-level=high",
-    "run:example": "node src/cli.js --plan examples/example-plan.json --out artifacts"
+    "run:example": "node src/cli.js --plan examples/example-plan.json --out artifacts",
+    "run:example:browser-harness": "node src/cli.js --engine browser-harness --plan examples/example-plan.json --out artifacts-browser-harness",
+    "run:example:dynamic": "node src/cli.js --engine browser-harness --plan examples/dynamic-page-plan.json --out artifacts-dynamic-browser"
   },
   "keywords": [
     "ai-agent",

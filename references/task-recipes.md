@@ -30,6 +30,22 @@
 3. Avoid deletion unless explicitly requested.
 4. Report changed paths and counts.
 
+## Native App Or Desktop Window
+
+1. Confirm the app, window, or file picker target.
+2. Check that a desktop provider is available.
+3. Prefer visible labels and window state over raw coordinates.
+4. Stop before destructive actions or account-changing prompts.
+5. Report the final window state, screenshot, or changed file path.
+
+## Dynamic Visual Target
+
+1. Identify what visual state should become stable or change.
+2. Use `observeStable` for browser-page motion.
+3. Use a host dynamic provider for moving targets outside the browser.
+4. Capture before/after screenshots or a short state report.
+5. Report any timing uncertainty or partial verification.
+
 ## Evidence Bundle
 
 For completed tasks, return:

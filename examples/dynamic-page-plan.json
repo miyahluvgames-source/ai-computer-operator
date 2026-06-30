@@ -1,0 +1,27 @@
+{
+  "name": "Dynamic browser state check",
+  "startUrl": "https://example.com",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "steps": [
+    {
+      "action": "goto",
+      "url": "https://example.com"
+    },
+    {
+      "action": "observeStable",
+      "selector": "body",
+      "stableMs": 500,
+      "intervalMs": 150,
+      "name": "example-stable.png",
+      "fullPage": true
+    },
+    {
+      "action": "assertText",
+      "selector": "body",
+      "contains": "Example Domain"
+    }
+  ]
+}

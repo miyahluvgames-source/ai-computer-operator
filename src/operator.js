@@ -1,9 +1,24 @@
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { chromium } from 'playwright';
+import { isBrowserHarnessAvailable, runPlanWithBrowserHarness } from './browser-harness-runner.js';
 import { ensureDir, makeArtifactPath, writeJson, writeText } from './report.js';
 import { validatePlan } from './safety.js';
 
 export async function runPlan(plan, options = {}) {
+  const engine = normalizeEngine(options.engine);
+  if (engine === 'browser-harness') {
+    return runPlanWithBrowserHarness(plan, options);
+  }
+
+  if (engine === 'auto' && await isBrowserHarnessAvailable()) {
+    return runPlanWithBrowserHarness(plan, options);
+  }
+
+  return runPlanWithPlaywright(plan, options);
+}
+
+async function runPlanWithPlaywright(plan, options = {}) {
   const outDir = path.resolve(options.outDir || 'artifacts');
   ensureDir(outDir);
 
@@ -25,6 +40,7 @@ export async function runPlan(plan, options = {}) {
   await page.setViewportSize(normalizeViewport(plan.viewport));
   const report = {
     name: plan.name || 'AI Computer Operator run',
+    engine: 'playwright',
     startedAt: new Date().toISOString(),
     finishedAt: null,
     status: 'running',
@@ -69,6 +85,14 @@ export async function runPlan(plan, options = {}) {
     writeJson(path.join(outDir, 'session-report.json'), report);
     await browser.close();
   }
+}
+
+function normalizeEngine(engine) {
+  const value = String(engine || 'auto').toLowerCase();
+  if (!['auto', 'browser-harness', 'playwright'].includes(value)) {
+    throw new Error(`Unsupported engine: ${engine}. Use auto, browser-harness, or playwright.`);
+  }
+  return value;
 }
 
 async function createBrowser(options) {
@@ -190,9 +214,72 @@ async function runStep(page, step, index, outDir, options) {
       await page.setViewportSize(normalizeViewport(step.viewport || step));
       return finish(base, { viewport: normalizeViewport(step.viewport || step) });
 
+    case 'observeStable': {
+      const result = await observeStable(page, step, index, outDir, options, timeout);
+      return finish(base, result);
+    }
+
     default:
       throw new Error(`Unsupported action: ${step.action}`);
   }
+}
+
+async function observeStable(page, step, index, outDir, options, timeout) {
+  const intervalMs = Number(step.intervalMs || 250);
+  const stableMs = Number(step.stableMs || 1000);
+  const fullPage = step.fullPage !== false;
+  const deadline = Date.now() + timeout;
+  let lastHash = null;
+  let stableSince = null;
+  let samples = 0;
+  let finalBuffer = null;
+
+  if (step.selector) {
+    await page.locator(step.selector).first().waitFor({
+      state: step.state || 'visible',
+      timeout
+    });
+  }
+
+  while (Date.now() <= deadline) {
+    finalBuffer = await page.screenshot({ fullPage });
+    const hash = createHash('sha256').update(finalBuffer).digest('hex');
+    samples += 1;
+
+    if (hash === lastHash) {
+      stableSince ??= Date.now();
+      if (Date.now() - stableSince >= stableMs) {
+        const artifact = makeArtifactPath(outDir, step.name || `stable-${index}.png`, `stable-${index}.png`);
+        await page.screenshot({ path: artifact, fullPage });
+        return {
+          selector: step.selector || null,
+          artifact,
+          samples,
+          stableMs,
+          intervalMs,
+          hash: hash.slice(0, 16)
+        };
+      }
+    } else {
+      lastHash = hash;
+      stableSince = Date.now();
+    }
+
+    await page.waitForTimeout(intervalMs);
+  }
+
+  const artifact = makeArtifactPath(outDir, step.name || `unstable-${index}.png`, `unstable-${index}.png`);
+  if (finalBuffer) {
+    await fsWriteFile(artifact, finalBuffer);
+  } else {
+    await page.screenshot({ path: artifact, fullPage });
+  }
+  throw new Error(`Page did not reach a stable visual state within ${timeout}ms. Last screenshot: ${artifact}`);
+}
+
+async function fsWriteFile(filePath, data) {
+  const { writeFile } = await import('node:fs/promises');
+  await writeFile(filePath, data);
 }
 
 function normalizeViewport(viewport) {

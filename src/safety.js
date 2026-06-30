@@ -12,7 +12,8 @@ const ALLOWED_ACTIONS = new Set([
   'check',
   'uncheck',
   'hover',
-  'setViewport'
+  'setViewport',
+  'observeStable'
 ]);
 
 const RISKY_TERMS = [
@@ -152,6 +153,15 @@ function validateStep(step, index, options, errors, warnings) {
 
   if (step.action === 'wait' && step.ms != null && !Number.isFinite(Number(step.ms))) {
     errors.push(`${label}.ms must be a number for wait.`);
+  }
+
+  if (step.action === 'observeStable') {
+    if (step.intervalMs != null && !Number.isFinite(Number(step.intervalMs))) {
+      errors.push(`${label}.intervalMs must be a number for observeStable.`);
+    }
+    if (step.stableMs != null && !Number.isFinite(Number(step.stableMs))) {
+      errors.push(`${label}.stableMs must be a number for observeStable.`);
+    }
   }
 
   const riskSurface = `${step.selector || ''} ${step.label || ''} ${step.text || ''} ${step.action || ''}`;

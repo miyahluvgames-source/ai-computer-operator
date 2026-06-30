@@ -7,6 +7,7 @@ function parseArgs(argv) {
   const args = {
     plan: null,
     out: 'artifacts',
+    engine: 'auto',
     headed: false,
     trace: false,
     allowLocal: false,
@@ -27,6 +28,8 @@ function parseArgs(argv) {
       args.plan = argv[++i];
     } else if (token === '--out') {
       args.out = argv[++i];
+    } else if (token === '--engine') {
+      args.engine = argv[++i];
     } else if (token === '--headed') {
       args.headed = true;
     } else if (token === '--trace') {
@@ -65,6 +68,7 @@ Usage:
 Options:
   --plan <file>             JSON plan to execute
   --out <dir>               Artifact output directory
+  --engine <name>           auto, browser-harness, or playwright
   --headed                  Run a visible browser when supported
   --trace                   Save Playwright trace.zip
   --cdp-endpoint <url>      Connect to an existing Chrome DevTools endpoint
@@ -98,6 +102,7 @@ async function main() {
   try {
     const report = await runPlan(plan, {
       outDir: args.out,
+      engine: args.engine,
       headed: args.headed,
       trace: args.trace,
       allowLocal: args.allowLocal,

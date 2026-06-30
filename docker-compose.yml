@@ -5,4 +5,4 @@ services:
       - "9222:9222"
     volumes:
       - ./artifacts:/app/artifacts
-    command: ["--plan", "examples/example-plan.json", "--cdp-port", "9222", "--out", "artifacts"]
+    command: ["--engine", "browser-harness", "--plan", "examples/example-plan.json", "--cdp-port", "9222", "--out", "artifacts"]

@@ -15,6 +15,18 @@ test('accepts a simple public page plan', () => {
   assert.deepEqual(result.errors, []);
 });
 
+test('accepts browser dynamic observation steps', () => {
+  const result = validatePlan({
+    startUrl: 'https://example.com',
+    steps: [
+      { action: 'observeStable', selector: 'body', stableMs: 500, intervalMs: 100, name: 'stable.png' }
+    ]
+  });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.errors, []);
+});
+
 test('blocks private hosts unless local access is allowed', () => {
   const blocked = validatePlan({
     startUrl: 'http://127.0.0.1:3000',
