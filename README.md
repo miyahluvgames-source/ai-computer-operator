@@ -30,6 +30,13 @@ The dynamic visual lane handles moving or pixel-based targets: drag-and-drop, ca
 
 The repository includes the browser runtime, Chrome DevTools Protocol support, browser-harness integration, `observeStable`, Docker, tests, and doctor checks. Desktop and host-level dynamic work is plugged in through the user's host agent, such as a desktop/computer-use connector or dynamic-control connector with screen, input, and permission access.
 
+Implementation details:
+
+- Built in: browser-harness, Chrome DevTools Protocol, Playwright Chromium, browser screenshot capture, `observeStable`, Docker, safety validation, and runtime doctor checks.
+- Desktop provider layer: a host computer-use or desktop connector backed by OS accessibility, screen capture, window state, and mouse/keyboard input APIs.
+- Dynamic provider layer: a host visual-control connector backed by screenshot/frame capture, image diff, OCR, template/icon matching, object/region detection, pointer control, and drag/timing support.
+- Precision strategy: prefer semantic targets and accessibility/window state first, then screenshot/OCR/template matching, then coordinate fallback only after window geometry is known and the result can be verified.
+
 Required host providers are checked through:
 
 ```bash

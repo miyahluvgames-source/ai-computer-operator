@@ -18,6 +18,8 @@ The skill should not continue just because a command returned success. It should
 
 AI Computer Operator is provider-agnostic. It does not require one fixed desktop plugin, because desktop permissions and automation bridges differ by agent platform and operating system.
 
+The implementation is split into bundled runtime components and pluggable host providers.
+
 Included in this repository:
 
 - skill instructions and safety policy
@@ -35,6 +37,17 @@ Provided by the user's host agent when needed:
 - dynamic-control connector for high-frequency visual feedback loops
 - optional MCP-style server or local automation bridge that exposes desktop or dynamic-control capabilities
 - OS permissions for screen capture, accessibility, input control, and automation
+
+Common provider implementation options:
+
+| Provider type | Typical backing technology |
+| --- | --- |
+| macOS desktop provider | Accessibility APIs, Screen Recording, Input Monitoring, Automation permissions, CGEvent-style input |
+| Windows desktop provider | UI Automation, screen capture, window handles/state, input injection |
+| Linux desktop provider | AT-SPI/accessibility APIs, X11/Wayland screen capture, input control |
+| Remote desktop provider | VNC/RDP/stream frame capture plus pointer and keyboard relay |
+| Dynamic visual provider | screenshot stream, image diff, OCR, template matching, object/region detection, pointer trajectory control |
+| MCP-style provider | a local server that exposes observe, click, type, drag, screenshot, and health-check tools to the agent |
 
 This split keeps the browser runtime reproducible while allowing each user to plug in the desktop and dynamic provider that works on their machine.
 
@@ -55,6 +68,19 @@ Minimum provider capabilities:
 - stop and confirmation behavior for unexpected prompts, permission dialogs, destructive actions, or account-changing screens
 
 The skill provides routing, safety policy, prompt patterns, and doctor checks. The actual desktop bridge is supplied by the user's host agent or a trusted desktop/computer-use connector.
+
+### Precision Targeting Strategy
+
+Desktop control should avoid blind coordinates whenever possible. A good provider should locate targets in layers:
+
+1. Semantic target: use accessible labels, roles, button names, menu text, window titles, or file names.
+2. Structured state: use an accessibility tree, window list, focused-app state, element bounds, or dialog metadata when available.
+3. Visual text: use OCR to locate visible labels when semantic UI metadata is missing.
+4. Visual shape: use template/icon matching or region detection for icons, handles, canvas objects, and unlabeled controls.
+5. Geometry fallback: use coordinates only after window bounds, display scale, and screenshot dimensions are known.
+6. Verification: re-observe the state after each meaningful action and stop if the visible result does not match the expected state.
+
+This layered targeting is what makes desktop automation reliable on mixed UI surfaces such as native apps, browser permission popups, file pickers, and remote desktop windows. The skill describes this targeting policy; the provider supplies the actual OS or vision primitives.
 
 ### Dependencies And Permissions
 
@@ -105,6 +131,21 @@ The lane uses a short visual feedback loop:
 For browser pages, this repo includes `observeStable`. It repeatedly samples browser screenshots, hashes frames, waits until the visual output stays unchanged for the requested stable window, and writes the final screenshot as evidence. If the page never stabilizes before timeout, it writes the last screenshot and fails loudly.
 
 For non-browser targets, the host agent needs a dynamic-control provider that can run the same observe-act-observe style loop against the real desktop.
+
+### Visual Loop Mechanics
+
+A robust dynamic provider usually combines several visual primitives:
+
+- frame capture: collect repeated screenshots or video frames
+- image diff: detect whether the target region changed between frames
+- stability detection: wait until the visual state remains unchanged for a configured window
+- OCR: read labels, counters, status text, or visible errors
+- template/icon matching: find buttons, handles, tiles, or repeated visual markers
+- region/object detection: locate canvas objects, moving targets, charts, maps, or game-like elements
+- pointer planning: move or drag in small controlled steps, then re-check the resulting frame
+- timeout and stop rules: fail loudly with the last captured evidence instead of guessing
+
+The bundled `observeStable` action implements the browser-page subset of this loop through screenshot sampling and SHA-256 frame hashing. Host dynamic providers can extend the same loop with OCR, image matching, object detection, and pointer trajectory control for targets outside the browser container.
 
 ### Dependencies And Provider Requirements
 
