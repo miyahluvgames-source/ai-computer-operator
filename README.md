@@ -159,12 +159,28 @@ The public workflow is DevTools-first. The package uses Playwright only as a pra
 ```bash
 npm install
 npm run install:browsers
-npm test
-npm run lint
+npm run verify
 node src/cli.js --plan examples/example-plan.json --out artifacts
 ```
 
 If browser dependencies are missing or hard to install locally, use the Docker path instead. The Docker image packages Chromium and the runtime dependencies.
+
+## Version Freshness
+
+This project includes a version gate:
+
+```bash
+npm run check:latest
+```
+
+It verifies that:
+
+- `playwright` in `package.json` matches npm registry latest
+- `package-lock.json` matches the same Playwright version
+- the Docker base image uses the same Playwright version
+- the Docker npm version and `packageManager` match npm registry latest
+
+CI runs the same gate before linting and tests, so dependency drift is caught early.
 
 ## Skill Hub Card Copy
 
